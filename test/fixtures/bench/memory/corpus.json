@@ -1,0 +1,20 @@
+[
+  {
+    "name": "small",
+    "lines": 240,
+    "tokensPerLine": 10,
+    "seed": 11
+  },
+  {
+    "name": "medium",
+    "lines": 1200,
+    "tokensPerLine": 14,
+    "seed": 22
+  },
+  {
+    "name": "large",
+    "lines": 3600,
+    "tokensPerLine": 18,
+    "seed": 33
+  }
+]
