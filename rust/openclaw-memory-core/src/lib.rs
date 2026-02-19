@@ -50,15 +50,40 @@ pub fn hash_text(value: &str) -> String {
 }
 
 fn split_utf16_segments(line: &str, max_units: usize) -> Vec<String> {
-    let units: Vec<u16> = line.encode_utf16().collect();
-    if units.is_empty() {
+    if line.is_empty() {
         return vec![String::new()];
     }
+    if line.is_ascii() {
+        if line.len() <= max_units {
+            return vec![line.to_string()];
+        }
+        let mut out = Vec::new();
+        for chunk in line.as_bytes().chunks(max_units) {
+            out.push(String::from_utf8_lossy(chunk).into_owned());
+        }
+        return out;
+    }
+    if line.len() <= max_units {
+        // UTF-16 code unit count is always <= UTF-8 byte length.
+        return vec![line.to_string()];
+    }
+    if line.encode_utf16().count() <= max_units {
+        return vec![line.to_string()];
+    }
+    let units: Vec<u16> = line.encode_utf16().collect();
     let mut out = Vec::new();
     for chunk in units.chunks(max_units) {
         out.push(String::from_utf16_lossy(chunk));
     }
     out
+}
+
+fn utf16_len(value: &str) -> usize {
+    if value.is_ascii() {
+        value.len()
+    } else {
+        value.encode_utf16().count()
+    }
 }
 
 pub fn chunk_markdown(content: &str, tokens: usize, overlap: usize) -> Vec<MemoryChunk> {
@@ -101,14 +126,17 @@ pub fn chunk_markdown(content: &str, tokens: usize, overlap: usize) -> Vec<Memor
         let mut acc = 0usize;
         let mut kept: Vec<(String, usize)> = Vec::new();
         for entry in current.iter().rev() {
-            acc = acc.saturating_add(entry.0.len() + 1);
+            acc = acc.saturating_add(utf16_len(entry.0.as_str()) + 1);
             kept.push(entry.clone());
             if acc >= overlap_chars {
                 break;
             }
         }
         kept.reverse();
-        *current_chars = kept.iter().map(|entry| entry.0.len() + 1).sum();
+        *current_chars = kept
+            .iter()
+            .map(|entry| utf16_len(entry.0.as_str()) + 1)
+            .sum();
         *current = kept;
     };
 
@@ -116,7 +144,7 @@ pub fn chunk_markdown(content: &str, tokens: usize, overlap: usize) -> Vec<Memor
         let line_no = idx + 1;
         let segments = split_utf16_segments(line, max_chars);
         for segment in segments {
-            let line_size = segment.len() + 1;
+            let line_size = utf16_len(segment.as_str()) + 1;
             if current_chars + line_size > max_chars && !current.is_empty() {
                 flush(&current, &mut chunks);
                 carry_overlap(&mut current, &mut current_chars);
