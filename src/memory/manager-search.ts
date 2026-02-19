@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { truncateUtf16Safe } from "../utils.js";
 import { cosineSimilarity, parseEmbedding } from "./internal.js";
-import { runNativeRankCosine } from "./native/bridge.js";
+import { isMemoryNativeBinaryAvailable, runNativeRankCosine } from "./native/bridge.js";
 import { resolveMemoryEngine } from "./native/flags.js";
 import { recordShadowComparison } from "./native/shadow-metrics.js";
 
@@ -83,7 +83,7 @@ export async function searchVector(params: {
     params.limit,
     params.snippetMaxChars,
   );
-  if (engine === "ts") {
+  if (engine === "ts" || !isMemoryNativeBinaryAvailable()) {
     return tsRanked;
   }
   try {

@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { resolveMemoryEngine } from "./flags.js";
 
 describe("resolveMemoryEngine", () => {
-  it("defaults to ts when env is missing", () => {
-    expect(resolveMemoryEngine({})).toBe("ts");
+  it("defaults to rust when env is missing", () => {
+    expect(resolveMemoryEngine({})).toBe("rust");
   });
 
-  it("accepts rust and shadow values", () => {
+  it("accepts ts, rust, and shadow values", () => {
+    expect(resolveMemoryEngine({ OPENCLAW_MEMORY_ENGINE: "ts" })).toBe("ts");
     expect(resolveMemoryEngine({ OPENCLAW_MEMORY_ENGINE: "rust" })).toBe("rust");
     expect(resolveMemoryEngine({ OPENCLAW_MEMORY_ENGINE: "shadow" })).toBe("shadow");
   });
@@ -15,7 +16,7 @@ describe("resolveMemoryEngine", () => {
     expect(resolveMemoryEngine({ OPENCLAW_MEMORY_ENGINE: " RuSt " })).toBe("rust");
   });
 
-  it("falls back to ts for invalid values", () => {
-    expect(resolveMemoryEngine({ OPENCLAW_MEMORY_ENGINE: "native" })).toBe("ts");
+  it("falls back to rust for invalid values", () => {
+    expect(resolveMemoryEngine({ OPENCLAW_MEMORY_ENGINE: "native" })).toBe("rust");
   });
 });

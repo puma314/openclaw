@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const nativeBridgeMock = vi.hoisted(() => ({
+  isMemoryNativeBinaryAvailable: vi.fn(),
   runNativeRankCosine: vi.fn(),
 }));
 
@@ -50,6 +51,8 @@ describe("searchVector native ranking modes", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
+    nativeBridgeMock.isMemoryNativeBinaryAvailable.mockReset();
+    nativeBridgeMock.isMemoryNativeBinaryAvailable.mockReturnValue(true);
     nativeBridgeMock.runNativeRankCosine.mockReset();
   });
 

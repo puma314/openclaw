@@ -34,7 +34,7 @@ Bench commands (local deterministic workloads):
 
 Runtime toggle for integration experiments:
 
-- `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `ts`)
+- `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `rust`; auto-falls back to TS when native binary is unavailable)
 
 ## Model latency bench (local keys)
 

@@ -49,7 +49,7 @@ For the Rust memory-core migration path, run this local loop:
 
 Runtime integration experiments can toggle memory engine mode via:
 
-- `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `ts`)
+- `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `rust`; auto-falls back to TS when native binary is unavailable)
 
 ## Test suites (what runs where)
 
