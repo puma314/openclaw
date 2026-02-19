@@ -42,6 +42,8 @@ For the Rust memory-core migration path, run this local loop:
 - `pnpm memory:native:build` to compile the Rust binary.
 - `pnpm test:memory:parity` for fixture-based equivalence tests.
 - `pnpm test:memory:fuzz` for deterministic randomized equivalence tests.
+- `pnpm test:memory:rust` to run the whole memory suite with Rust mode enabled.
+- `pnpm test:memory:shadow` to run the whole memory suite with shadow mode enabled.
 - `pnpm bench:memory:index`, `pnpm bench:memory:ranking`, and `pnpm bench:memory:query` for workload-specific performance checks.
 - `pnpm bench:memory:compare` for a consolidated TypeScript vs Rust benchmark summary.
 

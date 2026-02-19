@@ -22,6 +22,8 @@ For the memory-core Rust migration slice:
 - `pnpm memory:native:build` — compile the Rust memory binary (`rust/openclaw-memory-core`).
 - `pnpm test:memory:parity` — run fixture-based TS/Rust parity checks.
 - `pnpm test:memory:fuzz` — run deterministic randomized TS/Rust parity checks.
+- `pnpm test:memory:rust` — run the full memory suite with `OPENCLAW_MEMORY_ENGINE=rust`.
+- `pnpm test:memory:shadow` — run the full memory suite with `OPENCLAW_MEMORY_ENGINE=shadow`.
 
 Bench commands (local deterministic workloads):
 

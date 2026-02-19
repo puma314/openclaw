@@ -3,6 +3,7 @@ import { truncateUtf16Safe } from "../utils.js";
 import { cosineSimilarity, parseEmbedding } from "./internal.js";
 import { runNativeRankCosine } from "./native/bridge.js";
 import { resolveMemoryEngine } from "./native/flags.js";
+import { recordShadowComparison } from "./native/shadow-metrics.js";
 
 const vectorToBlob = (embedding: number[]): Buffer =>
   Buffer.from(new Float32Array(embedding).buffer);
@@ -113,6 +114,11 @@ export async function searchVector(params: {
       })
       .filter((entry): entry is SearchRowResult => entry !== null);
     if (engine === "shadow") {
+      recordShadowComparison({
+        key: "rank_cosine",
+        matched: areRankingsEquivalent(tsRanked, mapped),
+        detail: describeRankingMismatch(tsRanked, mapped),
+      });
       return tsRanked;
     }
     return mapped;
@@ -153,6 +159,46 @@ function rankChunksWithTs(
       snippet: truncateUtf16Safe(entry.chunk.text, snippetMaxChars),
       source: entry.chunk.source,
     }));
+}
+
+function areRankingsEquivalent(a: SearchRowResult[], b: SearchRowResult[]) {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right) {
+      return false;
+    }
+    if (left.id !== right.id) {
+      return false;
+    }
+    if (Math.abs(left.score - right.score) > 1e-9) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function describeRankingMismatch(a: SearchRowResult[], b: SearchRowResult[]) {
+  if (a.length !== b.length) {
+    return `length ts=${a.length} native=${b.length}`;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right) {
+      return `missing rank entry index=${i}`;
+    }
+    if (left.id !== right.id) {
+      return `id index=${i} ts=${left.id} native=${right.id}`;
+    }
+    if (Math.abs(left.score - right.score) > 1e-9) {
+      return `score index=${i} ts=${left.score.toFixed(6)} native=${right.score.toFixed(6)}`;
+    }
+  }
+  return undefined;
 }
 
 export function listChunks(params: {

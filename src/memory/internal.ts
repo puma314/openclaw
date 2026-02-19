@@ -5,6 +5,7 @@ import path from "node:path";
 import { runTasksWithConcurrency } from "../utils/run-with-concurrency.js";
 import { isMemoryNativeBinaryAvailable, runNativeChunkMarkdown } from "./native/bridge.js";
 import { resolveMemoryEngine } from "./native/flags.js";
+import { recordShadowComparison } from "./native/shadow-metrics.js";
 
 export type MemoryFileEntry = {
   path: string;
@@ -190,6 +191,11 @@ export function chunkMarkdown(
       hash: chunk.hash,
     }));
     if (engine === "shadow") {
+      recordShadowComparison({
+        key: "chunk_markdown",
+        matched: areChunksEquivalent(tsChunks, nativeChunks),
+        detail: describeChunkMismatch(tsChunks, nativeChunks),
+      });
       return tsChunks;
     }
     return nativeChunks;
@@ -345,4 +351,49 @@ export async function runWithConcurrency<T>(
     throw firstError;
   }
   return results;
+}
+
+function areChunksEquivalent(a: MemoryChunk[], b: MemoryChunk[]) {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right) {
+      return false;
+    }
+    if (
+      left.startLine !== right.startLine ||
+      left.endLine !== right.endLine ||
+      left.text !== right.text ||
+      left.hash !== right.hash
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function describeChunkMismatch(a: MemoryChunk[], b: MemoryChunk[]) {
+  if (a.length !== b.length) {
+    return `length ts=${a.length} native=${b.length}`;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right) {
+      return `missing chunk at index=${i}`;
+    }
+    if (left.startLine !== right.startLine || left.endLine !== right.endLine) {
+      return `line-range index=${i} ts=${left.startLine}-${left.endLine} native=${right.startLine}-${right.endLine}`;
+    }
+    if (left.hash !== right.hash) {
+      return `hash index=${i} ts=${left.hash.slice(0, 12)} native=${right.hash.slice(0, 12)}`;
+    }
+    if (left.text !== right.text) {
+      return `text index=${i} ts_len=${left.text.length} native_len=${right.text.length}`;
+    }
+  }
+  return undefined;
 }
