@@ -59,6 +59,7 @@ describe("chunkMarkdown native engine modes", () => {
       },
     ]);
     const { chunkMarkdown } = await import("./internal.js");
+    vi.stubEnv("OPENCLAW_MEMORY_ENGINE", "ts");
     const tsResult = chunkMarkdown("alpha\nbeta", { tokens: 20, overlap: 0 });
     vi.stubEnv("OPENCLAW_MEMORY_ENGINE", "shadow");
     const shadowResult = chunkMarkdown("alpha\nbeta", { tokens: 20, overlap: 0 });
