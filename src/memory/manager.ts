@@ -19,6 +19,8 @@ import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js"
 import { isMemoryPath, normalizeExtraMemoryPaths } from "./internal.js";
 import { MemoryManagerEmbeddingOps } from "./manager-embedding-ops.js";
 import { searchKeyword, searchVector } from "./manager-search.js";
+import { resolveMemoryEngine } from "./native/flags.js";
+import { getShadowMetricsSnapshot } from "./native/shadow-metrics.js";
 import { extractKeywords } from "./query-expansion.js";
 import type {
   MemoryEmbeddingProbeResult,
@@ -556,6 +558,8 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
       custom: {
         searchMode,
         providerUnavailableReason: this.providerUnavailableReason,
+        memoryEngine: resolveMemoryEngine(),
+        shadowMetrics: getShadowMetricsSnapshot(),
       },
     };
   }
