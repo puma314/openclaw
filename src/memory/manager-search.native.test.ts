@@ -98,6 +98,25 @@ describe("searchVector native ranking modes", () => {
     expect(results.map((entry) => entry.id)).toEqual(["a", "c"]);
   });
 
+  it("falls back to TypeScript ranking when native binary is unavailable", async () => {
+    vi.stubEnv("OPENCLAW_MEMORY_ENGINE", "rust");
+    nativeBridgeMock.isMemoryNativeBinaryAvailable.mockReturnValue(false);
+    const { searchVector } = await import("./manager-search.js");
+    const results = await searchVector({
+      db: createDbMock() as never,
+      vectorTable: "chunks_vec",
+      providerModel: "model",
+      queryVec: [1, 0],
+      limit: 2,
+      snippetMaxChars: 700,
+      ensureVectorReady: async () => false,
+      sourceFilterVec: { sql: "", params: [] },
+      sourceFilterChunks: { sql: "", params: [] },
+    });
+    expect(results.map((entry) => entry.id)).toEqual(["a", "c"]);
+    expect(nativeBridgeMock.runNativeRankCosine).not.toHaveBeenCalled();
+  });
+
   it("returns TypeScript ranking in shadow mode", async () => {
     vi.stubEnv("OPENCLAW_MEMORY_ENGINE", "shadow");
     nativeBridgeMock.runNativeRankCosine.mockReturnValue([

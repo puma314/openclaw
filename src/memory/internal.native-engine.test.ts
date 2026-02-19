@@ -49,6 +49,15 @@ describe("chunkMarkdown native engine modes", () => {
     expect(rustResult).toEqual(tsResult);
   });
 
+  it("falls back to TypeScript output when native binary is unavailable", async () => {
+    nativeBridgeMock.isMemoryNativeBinaryAvailable.mockReturnValue(false);
+    vi.stubEnv("OPENCLAW_MEMORY_ENGINE", "rust");
+    const { chunkMarkdown } = await import("./internal.js");
+    const result = chunkMarkdown("one\ntwo\nthree", { tokens: 20, overlap: 0 });
+    expect(result.map((entry) => entry.text)).toEqual(["one\ntwo\nthree"]);
+    expect(nativeBridgeMock.runNativeChunkMarkdown).not.toHaveBeenCalled();
+  });
+
   it("returns TypeScript result in shadow mode", async () => {
     nativeBridgeMock.runNativeChunkMarkdown.mockReturnValue([
       {

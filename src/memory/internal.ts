@@ -175,11 +175,28 @@ export function chunkMarkdown(
   if (engine === "ts") {
     return chunkMarkdownTs(content, chunking);
   }
-  const tsChunks = chunkMarkdownTs(content, chunking);
   if (!isMemoryNativeBinaryAvailable()) {
-    return tsChunks;
+    return chunkMarkdownTs(content, chunking);
+  }
+
+  let tsChunksCache: MemoryChunk[] | null = null;
+  const getTsChunks = () => {
+    if (tsChunksCache) {
+      return tsChunksCache;
+    }
+    tsChunksCache = chunkMarkdownTs(content, chunking);
+    return tsChunksCache;
+  };
+  const nowMs = () => Number(process.hrtime.bigint()) / 1_000_000;
+
+  let tsDurationMs: number | undefined;
+  if (engine === "shadow") {
+    const tsStart = nowMs();
+    getTsChunks();
+    tsDurationMs = nowMs() - tsStart;
   }
   try {
+    const nativeStart = nowMs();
     const nativeChunks = runNativeChunkMarkdown({
       content,
       tokens: chunking.tokens,
@@ -190,17 +207,29 @@ export function chunkMarkdown(
       text: chunk.text,
       hash: chunk.hash,
     }));
+    const nativeDurationMs = nowMs() - nativeStart;
     if (engine === "shadow") {
+      const tsChunks = getTsChunks();
       recordShadowComparison({
         key: "chunk_markdown",
         matched: areChunksEquivalent(tsChunks, nativeChunks),
         detail: describeChunkMismatch(tsChunks, nativeChunks),
+        tsDurationMs,
+        nativeDurationMs,
       });
       return tsChunks;
     }
     return nativeChunks;
   } catch {
-    return tsChunks;
+    if (engine === "shadow") {
+      recordShadowComparison({
+        key: "chunk_markdown",
+        matched: false,
+        detail: "native failure",
+        tsDurationMs,
+      });
+    }
+    return getTsChunks();
   }
 }
 

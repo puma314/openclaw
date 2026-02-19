@@ -77,16 +77,34 @@ export async function searchVector(params: {
     sourceFilter: params.sourceFilterChunks,
   });
   const engine = resolveMemoryEngine();
-  const tsRanked = rankChunksWithTs(
-    params.queryVec,
-    candidates,
-    params.limit,
-    params.snippetMaxChars,
-  );
-  if (engine === "ts" || !isMemoryNativeBinaryAvailable()) {
-    return tsRanked;
+  let tsRankedCache: SearchRowResult[] | null = null;
+  const getTsRanked = () => {
+    if (tsRankedCache) {
+      return tsRankedCache;
+    }
+    tsRankedCache = rankChunksWithTs(
+      params.queryVec,
+      candidates,
+      params.limit,
+      params.snippetMaxChars,
+    );
+    return tsRankedCache;
+  };
+  if (engine === "ts") {
+    return getTsRanked();
+  }
+  if (!isMemoryNativeBinaryAvailable()) {
+    return getTsRanked();
+  }
+  const nowMs = () => Number(process.hrtime.bigint()) / 1_000_000;
+  let tsDurationMs: number | undefined;
+  if (engine === "shadow") {
+    const tsStart = nowMs();
+    getTsRanked();
+    tsDurationMs = nowMs() - tsStart;
   }
   try {
+    const nativeStart = nowMs();
     const nativeRanked = runNativeRankCosine({
       query: params.queryVec,
       candidates: candidates.map((candidate) => ({
@@ -95,6 +113,7 @@ export async function searchVector(params: {
       })),
       limit: params.limit,
     });
+    const nativeDurationMs = nowMs() - nativeStart;
     const chunkById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
     const mapped = nativeRanked
       .map((entry) => {
@@ -114,16 +133,27 @@ export async function searchVector(params: {
       })
       .filter((entry): entry is SearchRowResult => entry !== null);
     if (engine === "shadow") {
+      const tsRanked = getTsRanked();
       recordShadowComparison({
         key: "rank_cosine",
         matched: areRankingsEquivalent(tsRanked, mapped),
         detail: describeRankingMismatch(tsRanked, mapped),
+        tsDurationMs,
+        nativeDurationMs,
       });
       return tsRanked;
     }
     return mapped;
   } catch {
-    return tsRanked;
+    if (engine === "shadow") {
+      recordShadowComparison({
+        key: "rank_cosine",
+        matched: false,
+        detail: "native failure",
+        tsDurationMs,
+      });
+    }
+    return getTsRanked();
   }
 }
 
