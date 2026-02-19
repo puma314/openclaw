@@ -15,6 +15,25 @@ title: "Tests"
 - `pnpm test:e2e`: Runs gateway end-to-end smoke tests (multi-instance WS/HTTP/node pairing). Defaults to `vmForks` + adaptive workers in `vitest.e2e.config.ts`; tune with `OPENCLAW_E2E_WORKERS=<n>` and set `OPENCLAW_E2E_VERBOSE=1` for verbose logs.
 - `pnpm test:live`: Runs provider live tests (minimax/zai). Requires API keys and `LIVE=1` (or provider-specific `*_LIVE_TEST=1`) to unskip.
 
+## Memory TS ↔ Rust parity and perf loop
+
+For the memory-core Rust migration slice:
+
+- `pnpm memory:native:build` — compile the Rust memory binary (`rust/openclaw-memory-core`).
+- `pnpm test:memory:parity` — run fixture-based TS/Rust parity checks.
+- `pnpm test:memory:fuzz` — run deterministic randomized TS/Rust parity checks.
+
+Bench commands (local deterministic workloads):
+
+- `pnpm bench:memory:index` — markdown chunk/index-style throughput across small/medium/large corpora.
+- `pnpm bench:memory:ranking` — vector ranking throughput bench.
+- `pnpm bench:memory:query` — query-style ranking bench.
+- `pnpm bench:memory:compare` — consolidated TS vs Rust benchmark summary.
+
+Runtime toggle for integration experiments:
+
+- `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `ts`)
+
 ## Model latency bench (local keys)
 
 Script: [`scripts/bench-model.ts`](https://github.com/openclaw/openclaw/blob/main/scripts/bench-model.ts)

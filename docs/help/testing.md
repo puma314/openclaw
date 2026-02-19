@@ -35,6 +35,20 @@ When debugging real providers/models (requires real creds):
 
 Tip: when you only need one failing case, prefer narrowing live tests via the allowlist env vars described below.
 
+### Memory core TS vs Rust verification loop
+
+For the Rust memory-core migration path, run this local loop:
+
+- `pnpm memory:native:build` to compile the Rust binary.
+- `pnpm test:memory:parity` for fixture-based equivalence tests.
+- `pnpm test:memory:fuzz` for deterministic randomized equivalence tests.
+- `pnpm bench:memory:index`, `pnpm bench:memory:ranking`, and `pnpm bench:memory:query` for workload-specific performance checks.
+- `pnpm bench:memory:compare` for a consolidated TypeScript vs Rust benchmark summary.
+
+Runtime integration experiments can toggle memory engine mode via:
+
+- `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `ts`)
+
 ## Test suites (what runs where)
 
 Think of the suites as “increasing realism” (and increasing flakiness/cost):

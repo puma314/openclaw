@@ -1,5 +1,5 @@
 use openclaw_memory_core::{bench_memory, chunk_markdown, cosine_similarity, rank_cosine};
-use openclaw_memory_core::{MemoryBenchResult, RankCandidateInput};
+use openclaw_memory_core::{BenchMemoryParams, MemoryBenchResult, RankCandidateInput};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::io::{self, Read};
@@ -66,13 +66,19 @@ fn handle_request(request: MemoryCliRequest) -> serde_json::Value {
             overlap,
         } => json!(ok(chunk_markdown(content.as_str(), tokens, overlap))),
         MemoryCliRequest::CosineSimilarity { a, b } => {
-            json!(ok(json!({ "score": cosine_similarity(a.as_slice(), b.as_slice()) })))
+            json!(ok(
+                json!({ "score": cosine_similarity(a.as_slice(), b.as_slice()) })
+            ))
         }
         MemoryCliRequest::RankCosine {
             query,
             candidates,
             limit,
-        } => json!(ok(rank_cosine(query.as_slice(), candidates.as_slice(), limit))),
+        } => json!(ok(rank_cosine(
+            query.as_slice(),
+            candidates.as_slice(),
+            limit
+        ))),
         MemoryCliRequest::BenchMemory {
             chunk_iters,
             rank_iters,
@@ -83,16 +89,16 @@ fn handle_request(request: MemoryCliRequest) -> serde_json::Value {
             candidates,
             limit,
         } => {
-            let result: MemoryBenchResult = bench_memory(
+            let result: MemoryBenchResult = bench_memory(BenchMemoryParams {
                 chunk_iters,
                 rank_iters,
-                content.as_str(),
+                content: content.as_str(),
                 tokens,
                 overlap,
-                query.as_slice(),
-                candidates.as_slice(),
+                query: query.as_slice(),
+                candidates: candidates.as_slice(),
                 limit,
-            );
+            });
             json!(ok(result))
         }
     }
@@ -124,4 +130,3 @@ fn main() {
     let response = handle_request(request);
     println!("{response}");
 }
-

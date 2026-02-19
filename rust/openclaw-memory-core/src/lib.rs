@@ -32,6 +32,17 @@ pub struct MemoryBenchResult {
     pub rank_count: usize,
 }
 
+pub struct BenchMemoryParams<'a> {
+    pub chunk_iters: usize,
+    pub rank_iters: usize,
+    pub content: &'a str,
+    pub tokens: usize,
+    pub overlap: usize,
+    pub query: &'a [f64],
+    pub candidates: &'a [RankCandidateInput],
+    pub limit: usize,
+}
+
 pub fn hash_text(value: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(value.as_bytes());
@@ -166,34 +177,29 @@ pub fn rank_cosine(
         })
         .collect();
 
-    scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    scored.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     scored.truncate(limit);
     scored
 }
 
-pub fn bench_memory(
-    chunk_iters: usize,
-    rank_iters: usize,
-    content: &str,
-    tokens: usize,
-    overlap: usize,
-    query: &[f64],
-    candidates: &[RankCandidateInput],
-    limit: usize,
-) -> MemoryBenchResult {
+pub fn bench_memory(params: BenchMemoryParams<'_>) -> MemoryBenchResult {
     let total_started = Instant::now();
 
     let chunk_started = Instant::now();
     let mut chunk_count = 0usize;
-    for _ in 0..chunk_iters {
-        chunk_count = chunk_markdown(content, tokens, overlap).len();
+    for _ in 0..params.chunk_iters {
+        chunk_count = chunk_markdown(params.content, params.tokens, params.overlap).len();
     }
     let chunk_ms = chunk_started.elapsed().as_secs_f64() * 1000.0;
 
     let rank_started = Instant::now();
     let mut rank_count = 0usize;
-    for _ in 0..rank_iters {
-        rank_count = rank_cosine(query, candidates, limit).len();
+    for _ in 0..params.rank_iters {
+        rank_count = rank_cosine(params.query, params.candidates, params.limit).len();
     }
     let rank_ms = rank_started.elapsed().as_secs_f64() * 1000.0;
 
@@ -247,4 +253,3 @@ mod tests {
         assert_eq!(ranked[0].id, "a");
     }
 }
-
