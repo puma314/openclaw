@@ -31,6 +31,7 @@ Bench commands (local deterministic workloads):
 - `pnpm bench:memory:ranking` — vector ranking throughput bench.
 - `pnpm bench:memory:query` — query-style ranking bench.
 - `pnpm bench:memory:compare` — consolidated TS vs Rust benchmark summary.
+- `pnpm bench:gateway:parse` — gateway protocol parse/validation throughput and p50/p95 latency microbench.
 
 Runtime toggle for integration experiments:
 
