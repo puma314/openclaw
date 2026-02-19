@@ -14,6 +14,20 @@ import {
   readCorpusSpecs,
 } from "./memory-fixtures.ts";
 
+function withMemoryEngine<T>(engine: "ts" | "rust" | "shadow", run: () => T): T {
+  const previous = process.env.OPENCLAW_MEMORY_ENGINE;
+  process.env.OPENCLAW_MEMORY_ENGINE = engine;
+  try {
+    return run();
+  } finally {
+    if (typeof previous === "string") {
+      process.env.OPENCLAW_MEMORY_ENGINE = previous;
+    } else {
+      delete process.env.OPENCLAW_MEMORY_ENGINE;
+    }
+  }
+}
+
 function buildQueryCandidates(
   content: string,
   dims: number,
@@ -21,7 +35,7 @@ function buildQueryCandidates(
   query: number[];
   candidates: NativeRankCandidate[];
 } {
-  const chunks = chunkMarkdown(content, { tokens: 160, overlap: 32 });
+  const chunks = withMemoryEngine("ts", () => chunkMarkdown(content, { tokens: 160, overlap: 32 }));
   const rand = createLcg(777);
   const query = Array.from({ length: dims }, () => rand() * 2 - 1);
   const candidates = chunks.map((chunk) => ({

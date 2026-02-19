@@ -18,6 +18,20 @@ type BenchSummary = {
   totalMs: number;
 };
 
+function withMemoryEngine<T>(engine: "ts" | "rust" | "shadow", run: () => T): T {
+  const previous = process.env.OPENCLAW_MEMORY_ENGINE;
+  process.env.OPENCLAW_MEMORY_ENGINE = engine;
+  try {
+    return run();
+  } finally {
+    if (typeof previous === "string") {
+      process.env.OPENCLAW_MEMORY_ENGINE = previous;
+    } else {
+      delete process.env.OPENCLAW_MEMORY_ENGINE;
+    }
+  }
+}
+
 function parseIntArg(flag: string, fallback: number): number {
   const idx = process.argv.indexOf(flag);
   if (idx < 0) {
@@ -76,27 +90,29 @@ function benchTs(params: {
   query: number[];
   candidates: NativeRankCandidate[];
 }): BenchSummary {
-  const started = process.hrtime.bigint();
-  const chunkStarted = process.hrtime.bigint();
-  for (let i = 0; i < params.chunkIters; i += 1) {
-    chunkMarkdown(params.content, { tokens: 160, overlap: 32 });
-  }
-  const chunkMs = Number(process.hrtime.bigint() - chunkStarted) / 1e6;
+  return withMemoryEngine("ts", () => {
+    const started = process.hrtime.bigint();
+    const chunkStarted = process.hrtime.bigint();
+    for (let i = 0; i < params.chunkIters; i += 1) {
+      chunkMarkdown(params.content, { tokens: 160, overlap: 32 });
+    }
+    const chunkMs = Number(process.hrtime.bigint() - chunkStarted) / 1e6;
 
-  const rankStarted = process.hrtime.bigint();
-  for (let i = 0; i < params.rankIters; i += 1) {
-    params.candidates
-      .map((candidate) => ({
-        id: candidate.id,
-        score: cosineSimilarity(params.query, candidate.embedding),
-      }))
-      .filter((entry) => Number.isFinite(entry.score))
-      .toSorted((a, b) => b.score - a.score)
-      .slice(0, 8);
-  }
-  const rankMs = Number(process.hrtime.bigint() - rankStarted) / 1e6;
-  const totalMs = Number(process.hrtime.bigint() - started) / 1e6;
-  return { chunkMs, rankMs, totalMs };
+    const rankStarted = process.hrtime.bigint();
+    for (let i = 0; i < params.rankIters; i += 1) {
+      params.candidates
+        .map((candidate) => ({
+          id: candidate.id,
+          score: cosineSimilarity(params.query, candidate.embedding),
+        }))
+        .filter((entry) => Number.isFinite(entry.score))
+        .toSorted((a, b) => b.score - a.score)
+        .slice(0, 8);
+    }
+    const rankMs = Number(process.hrtime.bigint() - rankStarted) / 1e6;
+    const totalMs = Number(process.hrtime.bigint() - started) / 1e6;
+    return { chunkMs, rankMs, totalMs };
+  });
 }
 
 function formatMs(value: number): string {

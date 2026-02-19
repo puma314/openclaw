@@ -284,6 +284,37 @@ jobs:
       - name: Rust tests
         run: cargo test --manifest-path rust/openclaw-memory-core/Cargo.toml
 
+  memory-engine-matrix:
+    name: "memory-engine-${{ matrix.mode }}"
+    needs: [docs-scope, changed-scope, check]
+    if: needs.docs-scope.outputs.docs_only != 'true' && (github.event_name == 'push' || needs.changed-scope.outputs.run_node == 'true')
+    continue-on-error: true
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: rust
+            command: pnpm test:memory:rust
+          - mode: shadow
+            command: pnpm test:memory:shadow
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run memory engine suite (${{ matrix.mode }})
+        run: ${{ matrix.command }}
+
   # Validate docs (format, lint, broken links) only when docs files changed.
   check-docs:
     needs: [docs-scope]

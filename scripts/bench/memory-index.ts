@@ -20,6 +20,20 @@ type BenchRow = {
   speedup: string;
 };
 
+function withMemoryEngine<T>(engine: "ts" | "rust" | "shadow", run: () => T): T {
+  const previous = process.env.OPENCLAW_MEMORY_ENGINE;
+  process.env.OPENCLAW_MEMORY_ENGINE = engine;
+  try {
+    return run();
+  } finally {
+    if (typeof previous === "string") {
+      process.env.OPENCLAW_MEMORY_ENGINE = previous;
+    } else {
+      delete process.env.OPENCLAW_MEMORY_ENGINE;
+    }
+  }
+}
+
 async function main() {
   const corpusFilter = parseStringArg("--corpus");
   const iterations = parseIntArg("--iters", 80);
@@ -33,11 +47,13 @@ async function main() {
   for (const spec of selected) {
     const content = buildCorpusText(spec);
 
-    const tsStarted = process.hrtime.bigint();
-    for (let i = 0; i < iterations; i += 1) {
-      chunkMarkdown(content, { tokens: 160, overlap: 32 });
-    }
-    const tsMs = Number(process.hrtime.bigint() - tsStarted) / 1e6;
+    const tsMs = withMemoryEngine("ts", () => {
+      const tsStarted = process.hrtime.bigint();
+      for (let i = 0; i < iterations; i += 1) {
+        chunkMarkdown(content, { tokens: 160, overlap: 32 });
+      }
+      return Number(process.hrtime.bigint() - tsStarted) / 1e6;
+    });
 
     let rsMs: number | null = null;
     if (isMemoryNativeBinaryAvailable()) {
