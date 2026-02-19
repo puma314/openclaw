@@ -3,6 +3,8 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { runTasksWithConcurrency } from "../utils/run-with-concurrency.js";
+import { isMemoryNativeBinaryAvailable, runNativeChunkMarkdown } from "./native/bridge.js";
+import { resolveMemoryEngine } from "./native/flags.js";
 
 export type MemoryFileEntry = {
   path: string;
@@ -165,6 +167,38 @@ export async function buildFileEntry(
 }
 
 export function chunkMarkdown(
+  content: string,
+  chunking: { tokens: number; overlap: number },
+): MemoryChunk[] {
+  const engine = resolveMemoryEngine();
+  if (engine === "ts") {
+    return chunkMarkdownTs(content, chunking);
+  }
+  const tsChunks = chunkMarkdownTs(content, chunking);
+  if (!isMemoryNativeBinaryAvailable()) {
+    return tsChunks;
+  }
+  try {
+    const nativeChunks = runNativeChunkMarkdown({
+      content,
+      tokens: chunking.tokens,
+      overlap: chunking.overlap,
+    }).map((chunk) => ({
+      startLine: chunk.start_line,
+      endLine: chunk.end_line,
+      text: chunk.text,
+      hash: chunk.hash,
+    }));
+    if (engine === "shadow") {
+      return tsChunks;
+    }
+    return nativeChunks;
+  } catch {
+    return tsChunks;
+  }
+}
+
+function chunkMarkdownTs(
   content: string,
   chunking: { tokens: number; overlap: number },
 ): MemoryChunk[] {

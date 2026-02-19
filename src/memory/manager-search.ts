@@ -1,6 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
 import { truncateUtf16Safe } from "../utils.js";
 import { cosineSimilarity, parseEmbedding } from "./internal.js";
+import { runNativeRankCosine } from "./native/bridge.js";
+import { resolveMemoryEngine } from "./native/flags.js";
 
 const vectorToBlob = (embedding: number[]): Buffer =>
   Buffer.from(new Float32Array(embedding).buffer);
@@ -73,22 +75,82 @@ export async function searchVector(params: {
     providerModel: params.providerModel,
     sourceFilter: params.sourceFilterChunks,
   });
+  const engine = resolveMemoryEngine();
+  const tsRanked = rankChunksWithTs(
+    params.queryVec,
+    candidates,
+    params.limit,
+    params.snippetMaxChars,
+  );
+  if (engine === "ts") {
+    return tsRanked;
+  }
+  try {
+    const nativeRanked = runNativeRankCosine({
+      query: params.queryVec,
+      candidates: candidates.map((candidate) => ({
+        id: candidate.id,
+        embedding: candidate.embedding,
+      })),
+      limit: params.limit,
+    });
+    const chunkById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+    const mapped = nativeRanked
+      .map((entry) => {
+        const chunk = chunkById.get(entry.id);
+        if (!chunk) {
+          return null;
+        }
+        return {
+          id: chunk.id,
+          path: chunk.path,
+          startLine: chunk.startLine,
+          endLine: chunk.endLine,
+          score: entry.score,
+          snippet: truncateUtf16Safe(chunk.text, params.snippetMaxChars),
+          source: chunk.source,
+        } satisfies SearchRowResult;
+      })
+      .filter((entry): entry is SearchRowResult => entry !== null);
+    if (engine === "shadow") {
+      return tsRanked;
+    }
+    return mapped;
+  } catch {
+    return tsRanked;
+  }
+}
+
+function rankChunksWithTs(
+  queryVec: number[],
+  candidates: Array<{
+    id: string;
+    path: string;
+    startLine: number;
+    endLine: number;
+    text: string;
+    embedding: number[];
+    source: SearchSource;
+  }>,
+  limit: number,
+  snippetMaxChars: number,
+) {
   const scored = candidates
     .map((chunk) => ({
       chunk,
-      score: cosineSimilarity(params.queryVec, chunk.embedding),
+      score: cosineSimilarity(queryVec, chunk.embedding),
     }))
     .filter((entry) => Number.isFinite(entry.score));
   return scored
     .toSorted((a, b) => b.score - a.score)
-    .slice(0, params.limit)
+    .slice(0, limit)
     .map((entry) => ({
       id: entry.chunk.id,
       path: entry.chunk.path,
       startLine: entry.chunk.startLine,
       endLine: entry.chunk.endLine,
       score: entry.score,
-      snippet: truncateUtf16Safe(entry.chunk.text, params.snippetMaxChars),
+      snippet: truncateUtf16Safe(entry.chunk.text, snippetMaxChars),
       source: entry.chunk.source,
     }));
 }
