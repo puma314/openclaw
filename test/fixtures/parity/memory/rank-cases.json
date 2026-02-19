@@ -1,0 +1,23 @@
+[
+  {
+    "name": "basic-ranking",
+    "query": [1, 0],
+    "limit": 3,
+    "candidates": [
+      { "id": "a", "embedding": [1, 0] },
+      { "id": "b", "embedding": [0, 1] },
+      { "id": "c", "embedding": [0.5, 0.5] },
+      { "id": "d", "embedding": [0.75, 0.1] }
+    ]
+  },
+  {
+    "name": "mixed-signals",
+    "query": [0.4, -0.2, 0.9],
+    "limit": 2,
+    "candidates": [
+      { "id": "x", "embedding": [0.35, -0.1, 0.8] },
+      { "id": "y", "embedding": [-0.4, 0.9, 0.1] },
+      { "id": "z", "embedding": [0.1, -0.2, 0.95] }
+    ]
+  }
+]

@@ -1,0 +1,4 @@
+[workspace]
+members = ["openclaw-memory-core"]
+resolver = "2"
+
