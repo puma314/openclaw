@@ -10,6 +10,7 @@ import {
   createLcg,
   formatMs,
   formatSpeedup,
+  parseFloatArg,
   parseIntArg,
   readCorpusSpecs,
 } from "./memory-fixtures.ts";
@@ -49,6 +50,7 @@ async function main() {
   const iterations = parseIntArg("--iters", 150);
   const dims = parseIntArg("--dims", 192);
   const topK = parseIntArg("--limit", 6);
+  const minSpeedup = parseFloatArg("--min-speedup");
   const specs = await readCorpusSpecs();
   const fallbackSpec = specs[0];
   if (!fallbackSpec) {
@@ -95,7 +97,16 @@ async function main() {
   );
   console.log(`TS query-rank=${formatMs(tsMs)}`);
   console.log(`RS query-rank=${rsMs === null ? "n/a" : formatMs(rsMs)}`);
-  console.log(`Speedup=${rsMs === null ? "n/a" : formatSpeedup(tsMs, rsMs)}`);
+  const speedup = rsMs === null ? "n/a" : formatSpeedup(tsMs, rsMs);
+  console.log(`Speedup=${speedup}`);
+  if (minSpeedup === undefined || rsMs === null) {
+    return;
+  }
+  if (tsMs / rsMs < minSpeedup) {
+    throw new Error(
+      `memory query speedup below ${minSpeedup}x (actual ${(tsMs / rsMs).toFixed(2)}x)`,
+    );
+  }
 }
 
 await main();

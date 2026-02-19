@@ -46,11 +46,13 @@ For the Rust memory-core migration path, run this local loop:
 - `pnpm test:memory:shadow` to run the whole memory suite with shadow mode enabled.
 - `pnpm bench:memory:index`, `pnpm bench:memory:ranking`, and `pnpm bench:memory:query` for workload-specific performance checks.
 - `pnpm bench:memory:compare` for a consolidated TypeScript vs Rust benchmark summary.
+- `pnpm bench:memory:ci` for the CI performance threshold gate (index >= 1.5x, query >= 2.0x).
 - `pnpm bench:gateway:parse` for gateway protocol parse/validation hot-path baseline (ops/sec + p50/p95).
 
 Runtime integration experiments can toggle memory engine mode via:
 
 - `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `rust`; auto-falls back to TS when native binary is unavailable)
+- Rollback switch: set `OPENCLAW_MEMORY_ENGINE=ts` to force TypeScript-only memory execution.
 
 ## Test suites (what runs where)
 

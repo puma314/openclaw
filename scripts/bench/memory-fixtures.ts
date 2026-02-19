@@ -49,6 +49,18 @@ export function parseIntArg(flag: string, fallback: number): number {
   return value;
 }
 
+export function parseFloatArg(flag: string): number | undefined {
+  const idx = process.argv.indexOf(flag);
+  if (idx < 0) {
+    return undefined;
+  }
+  const value = Number.parseFloat(process.argv[idx + 1] ?? "");
+  if (!Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  return value;
+}
+
 export function parseStringArg(flag: string): string | undefined {
   const idx = process.argv.indexOf(flag);
   if (idx < 0) {

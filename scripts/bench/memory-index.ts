@@ -8,6 +8,7 @@ import {
   buildCorpusText,
   formatMs,
   formatSpeedup,
+  parseFloatArg,
   parseIntArg,
   parseStringArg,
   readCorpusSpecs,
@@ -37,6 +38,7 @@ function withMemoryEngine<T>(engine: "ts" | "rust" | "shadow", run: () => T): T 
 async function main() {
   const corpusFilter = parseStringArg("--corpus");
   const iterations = parseIntArg("--iters", 80);
+  const minSpeedup = parseFloatArg("--min-speedup");
   const specs = await readCorpusSpecs();
   const selected = corpusFilter ? specs.filter((spec) => spec.name === corpusFilter) : specs;
   if (selected.length === 0) {
@@ -85,6 +87,17 @@ async function main() {
       `${row.corpus}\t${formatMs(row.tsMs)}\t${row.rsMs === null ? "n/a" : formatMs(row.rsMs)}\t${row.speedup}`,
     );
   }
+  if (minSpeedup === undefined) {
+    return;
+  }
+  const missed = rows.filter((row) => row.rsMs !== null && row.tsMs / row.rsMs < minSpeedup);
+  if (missed.length === 0) {
+    return;
+  }
+  const details = missed
+    .map((row) => `${row.corpus}=${(row.tsMs / (row.rsMs ?? row.tsMs)).toFixed(2)}x`)
+    .join(", ");
+  throw new Error(`memory index speedup below ${minSpeedup}x (${details})`);
 }
 
 await main();

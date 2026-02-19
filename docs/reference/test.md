@@ -31,11 +31,13 @@ Bench commands (local deterministic workloads):
 - `pnpm bench:memory:ranking` — vector ranking throughput bench.
 - `pnpm bench:memory:query` — query-style ranking bench.
 - `pnpm bench:memory:compare` — consolidated TS vs Rust benchmark summary.
+- `pnpm bench:memory:ci` — threshold gate (index >= 1.5x, query >= 2.0x) used in CI.
 - `pnpm bench:gateway:parse` — gateway protocol parse/validation throughput and p50/p95 latency microbench.
 
 Runtime toggle for integration experiments:
 
 - `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `rust`; auto-falls back to TS when native binary is unavailable)
+- Rollback switch: set `OPENCLAW_MEMORY_ENGINE=ts` to force TypeScript-only memory execution.
 
 ## Model latency bench (local keys)
 
