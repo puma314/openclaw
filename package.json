@@ -51,6 +51,7 @@
     "android:install": "cd apps/android && ./gradlew :app:installDebug",
     "android:run": "cd apps/android && ./gradlew :app:installDebug && adb shell am start -n ai.openclaw.android/.MainActivity",
     "android:test": "cd apps/android && ./gradlew :app:testDebugUnitTest",
+    "bench:auto-reply:parse": "node --import tsx scripts/bench/auto-reply-parse.ts",
     "bench:gateway:parse": "node --import tsx scripts/bench/gateway-parse.ts",
     "bench:memory:ci": "pnpm bench:memory:index -- --iters 30 --min-speedup 1.5 && pnpm bench:memory:query -- --iters 120 --dims 128 --min-speedup 2",
     "bench:memory:compare": "pnpm memory:native:build && node --import tsx scripts/bench/memory-compare.ts",

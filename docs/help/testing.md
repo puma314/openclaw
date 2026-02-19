@@ -48,6 +48,7 @@ For the Rust memory-core migration path, run this local loop:
 - `pnpm bench:memory:compare` for a consolidated TypeScript vs Rust benchmark summary.
 - `pnpm bench:memory:ci` for the CI performance threshold gate (index >= 1.5x, query >= 2.0x).
 - `pnpm bench:gateway:parse` for gateway protocol parse/validation hot-path baseline (ops/sec + p50/p95).
+- `pnpm bench:auto-reply:parse` for auto-reply directive/slash parser baseline (ops/sec + p50/p95).
 
 Runtime integration experiments can toggle memory engine mode via:
 

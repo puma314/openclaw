@@ -33,6 +33,7 @@ Bench commands (local deterministic workloads):
 - `pnpm bench:memory:compare` — consolidated TS vs Rust benchmark summary.
 - `pnpm bench:memory:ci` — threshold gate (index >= 1.5x, query >= 2.0x) used in CI.
 - `pnpm bench:gateway:parse` — gateway protocol parse/validation throughput and p50/p95 latency microbench.
+- `pnpm bench:auto-reply:parse` — auto-reply directive/slash parser hot-path microbench for subsystem selection.
 
 Runtime toggle for integration experiments:
 
