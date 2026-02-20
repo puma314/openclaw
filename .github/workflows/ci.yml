@@ -259,6 +259,83 @@ jobs:
       - name: Check types and lint and oxfmt
         run: pnpm check
 
+  rust-memory:
+    name: "rust-memory"
+    needs: [docs-scope, changed-scope, check]
+    if: needs.docs-scope.outputs.docs_only != 'true' && (github.event_name == 'push' || needs.changed-scope.outputs.run_node == 'true')
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust format check
+        run: cargo fmt --manifest-path rust/openclaw-memory-core/Cargo.toml --all --check
+
+      - name: Rust clippy check
+        run: cargo clippy --manifest-path rust/openclaw-memory-core/Cargo.toml --all-targets -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --manifest-path rust/openclaw-memory-core/Cargo.toml
+
+  memory-engine-matrix:
+    name: "memory-engine-${{ matrix.mode }}"
+    needs: [docs-scope, changed-scope, check]
+    if: needs.docs-scope.outputs.docs_only != 'true' && (github.event_name == 'push' || needs.changed-scope.outputs.run_node == 'true')
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: rust
+            command: pnpm test:memory:rust
+          - mode: shadow
+            command: pnpm test:memory:shadow
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run memory engine suite (${{ matrix.mode }})
+        run: ${{ matrix.command }}
+
+  memory-perf:
+    name: "memory-perf"
+    needs: [docs-scope, changed-scope, check]
+    if: needs.docs-scope.outputs.docs_only != 'true' && (github.event_name == 'push' || needs.changed-scope.outputs.run_node == 'true')
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run memory performance threshold gate
+        run: pnpm bench:memory:ci
+
   # Validate docs (format, lint, broken links) only when docs files changed.
   check-docs:
     needs: [docs-scope]

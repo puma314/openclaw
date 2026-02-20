@@ -1,0 +1,20 @@
+[
+  {
+    "name": "long-line-split",
+    "tokens": 32,
+    "overlap": 0,
+    "content": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+    "name": "multiline-overlap",
+    "tokens": 24,
+    "overlap": 8,
+    "content": "## Header\\nalpha line\\nbeta line\\ngamma line\\ndelta line\\n\\ntrailing paragraph"
+  },
+  {
+    "name": "unicode-content",
+    "tokens": 20,
+    "overlap": 4,
+    "content": "Emoji 😀 line\\nCJK 混合内容\\nAccents café naïve résumé\\nLast line"
+  }
+]

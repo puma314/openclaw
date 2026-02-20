@@ -35,6 +35,27 @@ When debugging real providers/models (requires real creds):
 
 Tip: when you only need one failing case, prefer narrowing live tests via the allowlist env vars described below.
 
+### Memory core TS vs Rust verification loop
+
+For the Rust memory-core migration path, run this local loop:
+
+- `pnpm memory:native:build` to compile the Rust binary.
+- `pnpm test:memory:parity` for fixture-based equivalence tests.
+- `pnpm test:memory:fuzz` for deterministic randomized equivalence tests.
+- `pnpm test:memory:rust` to run the whole memory suite with Rust mode enabled.
+- `pnpm test:memory:shadow` to run the whole memory suite with shadow mode enabled.
+- `pnpm bench:memory:index`, `pnpm bench:memory:ranking`, and `pnpm bench:memory:query` for workload-specific performance checks.
+- `pnpm bench:memory:compare` for a consolidated TypeScript vs Rust benchmark summary.
+- `pnpm bench:memory:ci` for the CI performance threshold gate (index >= 1.5x, query >= 2.0x).
+- `pnpm bench:gateway:parse` for gateway protocol parse/validation hot-path baseline (ops/sec + p50/p95).
+- `pnpm bench:auto-reply:parse` for auto-reply directive/slash parser baseline (ops/sec + p50/p95).
+- Selection rubric and benchmark interpretation notes: [Rust Port Next Subsystem Selection](/reference/rust-port-next-subsystem)
+
+Runtime integration experiments can toggle memory engine mode via:
+
+- `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `rust`; auto-falls back to TS when native binary is unavailable)
+- Rollback switch: set `OPENCLAW_MEMORY_ENGINE=ts` to force TypeScript-only memory execution.
+
 ## Test suites (what runs where)
 
 Think of the suites as “increasing realism” (and increasing flakiness/cost):

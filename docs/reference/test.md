@@ -15,6 +15,32 @@ title: "Tests"
 - `pnpm test:e2e`: Runs gateway end-to-end smoke tests (multi-instance WS/HTTP/node pairing). Defaults to `vmForks` + adaptive workers in `vitest.e2e.config.ts`; tune with `OPENCLAW_E2E_WORKERS=<n>` and set `OPENCLAW_E2E_VERBOSE=1` for verbose logs.
 - `pnpm test:live`: Runs provider live tests (minimax/zai). Requires API keys and `LIVE=1` (or provider-specific `*_LIVE_TEST=1`) to unskip.
 
+## Memory TS ↔ Rust parity and perf loop
+
+For the memory-core Rust migration slice:
+
+- `pnpm memory:native:build` — compile the Rust memory binary (`rust/openclaw-memory-core`).
+- `pnpm test:memory:parity` — run fixture-based TS/Rust parity checks.
+- `pnpm test:memory:fuzz` — run deterministic randomized TS/Rust parity checks.
+- `pnpm test:memory:rust` — run the full memory suite with `OPENCLAW_MEMORY_ENGINE=rust`.
+- `pnpm test:memory:shadow` — run the full memory suite with `OPENCLAW_MEMORY_ENGINE=shadow`.
+
+Bench commands (local deterministic workloads):
+
+- `pnpm bench:memory:index` — markdown chunk/index-style throughput across small/medium/large corpora.
+- `pnpm bench:memory:ranking` — vector ranking throughput bench.
+- `pnpm bench:memory:query` — query-style ranking bench.
+- `pnpm bench:memory:compare` — consolidated TS vs Rust benchmark summary.
+- `pnpm bench:memory:ci` — threshold gate (index >= 1.5x, query >= 2.0x) used in CI.
+- `pnpm bench:gateway:parse` — gateway protocol parse/validation throughput and p50/p95 latency microbench.
+- `pnpm bench:auto-reply:parse` — auto-reply directive/slash parser hot-path microbench for subsystem selection.
+- Next-subsystem selection rubric and latest baseline snapshot: [Rust Port Next Subsystem Selection](/reference/rust-port-next-subsystem)
+
+Runtime toggle for integration experiments:
+
+- `OPENCLAW_MEMORY_ENGINE=ts|rust|shadow` (default `rust`; auto-falls back to TS when native binary is unavailable)
+- Rollback switch: set `OPENCLAW_MEMORY_ENGINE=ts` to force TypeScript-only memory execution.
+
 ## Model latency bench (local keys)
 
 Script: [`scripts/bench-model.ts`](https://github.com/openclaw/openclaw/blob/main/scripts/bench-model.ts)

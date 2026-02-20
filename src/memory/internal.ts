@@ -3,6 +3,9 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { runTasksWithConcurrency } from "../utils/run-with-concurrency.js";
+import { isMemoryNativeBinaryAvailable, runNativeChunkMarkdown } from "./native/bridge.js";
+import { resolveMemoryEngine } from "./native/flags.js";
+import { recordShadowComparison } from "./native/shadow-metrics.js";
 
 export type MemoryFileEntry = {
   path: string;
@@ -168,6 +171,72 @@ export function chunkMarkdown(
   content: string,
   chunking: { tokens: number; overlap: number },
 ): MemoryChunk[] {
+  const engine = resolveMemoryEngine();
+  if (engine === "ts") {
+    return chunkMarkdownTs(content, chunking);
+  }
+  if (!isMemoryNativeBinaryAvailable()) {
+    return chunkMarkdownTs(content, chunking);
+  }
+
+  let tsChunksCache: MemoryChunk[] | null = null;
+  const getTsChunks = () => {
+    if (tsChunksCache) {
+      return tsChunksCache;
+    }
+    tsChunksCache = chunkMarkdownTs(content, chunking);
+    return tsChunksCache;
+  };
+  const nowMs = () => Number(process.hrtime.bigint()) / 1_000_000;
+
+  let tsDurationMs: number | undefined;
+  if (engine === "shadow") {
+    const tsStart = nowMs();
+    getTsChunks();
+    tsDurationMs = nowMs() - tsStart;
+  }
+  try {
+    const nativeStart = nowMs();
+    const nativeChunks = runNativeChunkMarkdown({
+      content,
+      tokens: chunking.tokens,
+      overlap: chunking.overlap,
+    }).map((chunk) => ({
+      startLine: chunk.start_line,
+      endLine: chunk.end_line,
+      text: chunk.text,
+      hash: chunk.hash,
+    }));
+    const nativeDurationMs = nowMs() - nativeStart;
+    if (engine === "shadow") {
+      const tsChunks = getTsChunks();
+      recordShadowComparison({
+        key: "chunk_markdown",
+        matched: areChunksEquivalent(tsChunks, nativeChunks),
+        detail: describeChunkMismatch(tsChunks, nativeChunks),
+        tsDurationMs,
+        nativeDurationMs,
+      });
+      return tsChunks;
+    }
+    return nativeChunks;
+  } catch {
+    if (engine === "shadow") {
+      recordShadowComparison({
+        key: "chunk_markdown",
+        matched: false,
+        detail: "native failure",
+        tsDurationMs,
+      });
+    }
+    return getTsChunks();
+  }
+}
+
+function chunkMarkdownTs(
+  content: string,
+  chunking: { tokens: number; overlap: number },
+): MemoryChunk[] {
   const lines = content.split("\n");
   if (lines.length === 0) {
     return [];
@@ -311,4 +380,49 @@ export async function runWithConcurrency<T>(
     throw firstError;
   }
   return results;
+}
+
+function areChunksEquivalent(a: MemoryChunk[], b: MemoryChunk[]) {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right) {
+      return false;
+    }
+    if (
+      left.startLine !== right.startLine ||
+      left.endLine !== right.endLine ||
+      left.text !== right.text ||
+      left.hash !== right.hash
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function describeChunkMismatch(a: MemoryChunk[], b: MemoryChunk[]) {
+  if (a.length !== b.length) {
+    return `length ts=${a.length} native=${b.length}`;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right) {
+      return `missing chunk at index=${i}`;
+    }
+    if (left.startLine !== right.startLine || left.endLine !== right.endLine) {
+      return `line-range index=${i} ts=${left.startLine}-${left.endLine} native=${right.startLine}-${right.endLine}`;
+    }
+    if (left.hash !== right.hash) {
+      return `hash index=${i} ts=${left.hash.slice(0, 12)} native=${right.hash.slice(0, 12)}`;
+    }
+    if (left.text !== right.text) {
+      return `text index=${i} ts_len=${left.text.length} native_len=${right.text.length}`;
+    }
+  }
+  return undefined;
 }
